@@ -45,7 +45,7 @@ export default function App() {
         }}
       >
         {flowData ? (
-          <TreeVisualizer nodes={flowData.nodes} edges={flowData.edges} />
+          <TreeVisualizer key={JSON.stringify(flowData.nodes.map(n => n.id))} nodes={flowData.nodes} edges={flowData.edges} />
         ) : (
           <div
             style={{

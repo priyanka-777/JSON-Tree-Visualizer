@@ -1,130 +1,115 @@
-// Initialize node id with 0 
-let nodeId = 0;
-let globalY = 0;
-
-export function parseJsonToFlow(json, parentId = null, depth = 0, posX = 0, posY = 0) {
+export function parseJsonToFlow(json, parentId = null, path = "$", posX = 0, posY = 0, level = 0, isRoot = true) {
+    // Reset node counter only on first call
+    if (isRoot) nodeId = 0;
+  
     let nodes = [];
     let edges = [];
-
+  
+    const type = getType(json);
     const currentId = `node-${nodeId++}`;
-
-    // Determine node label and type
-    let type = typeof json;
-    let label;
-
-    if (json === null) {
-        type = "null";
-        label = "null";
-    } else if (Array.isArray(json)) {
-        type = "array";
-        label = "Array";
-    } else if (type === "object") {
-        label = "Object";
-    } else {
-        label = String(json);
-    }
-
-    // Add current node
-    nodes.push({
-        id: currentId,
-        data: { label },
-        position: { x: posX, y: posY },
-        style: getNodeStyle(type),
-    });
-
-    // Connect to parent if applicable
+    const label = path === "$" ? "Root" : path.split(".").pop();
+    const displayValue =
+      type === "string" || type === "number" || type === "boolean" || type === "null"
+        ? String(json)
+        : null;
+  
+    // Always create a node now (including root)
+    const node = {
+      id: currentId,
+      data: {
+        label: displayValue ? `${label}: ${displayValue}` : label,
+        path,
+        type,
+      },
+      position: { x: level * 280, y: posY },
+      style: {
+        background: nodeColorByType(type),
+        color: "#fff",
+        borderRadius: 8,
+        padding: 10,
+        fontSize: 13,
+        minWidth: 140,
+        textAlign: "center",
+        boxShadow: "0 2px 5px rgba(0,0,0,0.15)",
+      },
+    };
+  
+    nodes.push(node);
+  
     if (parentId) {
-        edges.push({
-            id: `edge-${parentId}-${currentId}`,
-            source: parentId,
-            target: currentId,
-        });
+      edges.push({
+        id: `edge-${parentId}-${currentId}`,
+        source: parentId,
+        target: currentId,
+        animated: false,
+      });
     }
-
-    // Recurse for child elements (if object or array)
-    if (type === "object" && json !== null) {
-        let i = 0;
-        for (const [key, value] of Object.entries(json)) {
-            const childX = posX + 250;
-            const childY = globalY * 120;
-            globalY++;
-
-            const { nodes: childNodes, edges: childEdges } = parseJsonToFlow(
-                value,
-                currentId,
-                depth + 1,
-                childX,
-                childY
-            );
-
-            // key node
-            nodes.push({
-                id: `${currentId}-key-${key}`,
-                data: { label: key },
-                position: { x: posX + 120, y: childY + 20 },
-                style: getNodeStyle("key"),
-            });
-
-            edges.push({
-                id: `edge-${currentId}-${currentId}-key-${key}`,
-                source: currentId,
-                target: `${currentId}-key-${key}`,
-            });
-
-            nodes = nodes.concat(childNodes);
-            edges = edges.concat(childEdges);
-            i++;
-        }
+  
+    // Spacing between child nodes
+    const verticalSpacing = 120;
+    let currentY = posY;
+  
+    // Recurse for objects and arrays
+    if (type === "object") {
+      for (const [key, value] of Object.entries(json)) {
+        const { nodes: childNodes, edges: childEdges } = parseJsonToFlow(
+          value,
+          currentId,
+          `${path}.${key}`,
+          posX,
+          currentY,
+          level + 1,
+          false
+        );
+  
+        nodes = nodes.concat(childNodes);
+        edges = edges.concat(childEdges);
+        currentY += verticalSpacing * Math.max(1, childNodes.length / 2);
+      }
     } else if (type === "array") {
-        json.forEach((value, index) => {
-            const childX = posX + 250;
-            const childY = globalY * 120;
-            globalY++;
-          
-            // index node ([0], [1]…)
-            const indexNodeId = `${currentId}-index-${index}`;
-            nodes.push({
-              id: indexNodeId,
-              data: { label: `[${index}]` },
-              position: { x: posX + 120, y: childY + 20 },
-              style: getNodeStyle("key"),
-            });
-          
-            edges.push({
-              id: `edge-${currentId}-${indexNodeId}`,
-              source: currentId,
-              target: indexNodeId,
-            });
-          
-            const { nodes: childNodes, edges: childEdges } = parseJsonToFlow(
-              value,
-              indexNodeId,
-              depth + 1,
-              childX,
-              childY
-            );
-          
-            nodes = nodes.concat(childNodes);
-            edges = edges.concat(childEdges);
-          });
+      json.forEach((value, index) => {
+        const { nodes: childNodes, edges: childEdges } = parseJsonToFlow(
+          value,
+          currentId,
+          `${path}[${index}]`,
+          posX,
+          currentY,
+          level + 1,
+          false
+        );
+  
+        nodes = nodes.concat(childNodes);
+        edges = edges.concat(childEdges);
+        currentY += verticalSpacing * Math.max(1, childNodes.length / 2);
+      });
     }
+  
     return { nodes, edges };
-}
-
-function getNodeStyle(type) {
+  }
+  
+  function getType(value) {
+    if (value === null) return "null";
+    if (Array.isArray(value)) return "array";
+    return typeof value;
+  }
+  
+  function nodeColorByType(type) {
     switch (type) {
-        case "object":
-            return { background: "#7E57C2", color: "white", borderRadius: "8px", padding: 10 };
-        case "array":
-            return { background: "#43A047", color: "white", borderRadius: "8px", padding: 10 };
-        case "key":
-            return { background: "#03A9F4", color: "white", borderRadius: "8px", padding: 10 };
-        case "number":
-        case "string":
-        case "boolean":
-        case "null":
-            return { background: "#FBC02D", color: "black", borderRadius: "8px", padding: 10 };
-        default:
-            return { background: "#E0E0E0", color: "black" };
+      case "object":
+        return "#7c3aed";
+      case "array":
+        return "#10b981";
+      case "null":
+        return "#f59e0b";
+      case "number":
+      case "string":
+      case "boolean":
+        return "#f97316";
+      default:
+        return "#9ca3af";
     }
-}
+  }
+  
+  // Keep nodeId 
+  let nodeId = 0;
+  
