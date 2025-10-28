@@ -31,7 +31,17 @@ export default function JsonText({ onVisualize }) {
       setError("");
       onVisualize(parsed);
     } catch (err) {
-      setError("❌ Invalid JSON format. Please check your input.");
+      // Try to extract position info from the error message
+      const match = /position (\d+)/.exec(err.message);
+      if (match) {
+        const pos = parseInt(match[1], 10);
+        const linesUntilError = jsonText.slice(0, pos).split("\n");
+        const line = linesUntilError.length;
+        const col = linesUntilError[linesUntilError.length - 1].length + 1;
+        setError(` JSON error at line ${line}, column ${col}: ${err.message}`);
+      } else {
+        setError(` Invalid JSON: ${err.message}`);
+      }
     }
   };
 
