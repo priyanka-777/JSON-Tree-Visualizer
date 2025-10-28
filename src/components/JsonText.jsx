@@ -47,7 +47,11 @@ export default function JsonText({ onVisualize }) {
           borderColor: error ? "red" : "#ccc",
         }}
         value={jsonText}
-        onChange={(e) => setJsonText(e.target.value)}
+        onChange={(e) => {
+            setJsonText(e.target.value)
+            if (error) setError("");
+        }
+    }
       />
       {error && <p style={{ color: "red" }}>{error}</p>}
       <button
