@@ -69,20 +69,39 @@ export function parseJsonToFlow(json, parentId = null, depth = 0, posX = 0, posY
       i++;
     }
   } else if (type === "array") {
-    json.forEach((value, index) => {
-      const childX = posX + 250;
-      const childY = posY + index * 120;
-      const { nodes: childNodes, edges: childEdges } = parseJsonToFlow(
-        value,
-        currentId,
-        depth + 1,
-        childX,
-        childY
-      );
-      nodes = nodes.concat(childNodes);
-      edges = edges.concat(childEdges);
+  json.forEach((value, index) => {
+    const childX = posX + 250;
+    const childY = posY + index * 120;
+
+    // Add a node for the index label (e.g., [0], [1])
+    const indexNodeId = `${currentId}-index-${index}`;
+    nodes.push({
+      id: indexNodeId,
+      data: { label: `[${index}]` },
+      position: { x: posX + 120, y: childY + 20 },
+      style: getNodeStyle("key"),
     });
-  }
+
+    // Connect the array node to the index node
+    edges.push({
+      id: `edge-${currentId}-${indexNodeId}`,
+      source: currentId,
+      target: indexNodeId,
+    });
+
+    // Recurse into the array item value
+    const { nodes: childNodes, edges: childEdges } = parseJsonToFlow(
+      value,
+      indexNodeId, // connect to index node instead of array
+      depth + 1,
+      childX,
+      childY
+    );
+
+    nodes = nodes.concat(childNodes);
+    edges = edges.concat(childEdges);
+  });
+}
 
   return { nodes, edges };
 }
