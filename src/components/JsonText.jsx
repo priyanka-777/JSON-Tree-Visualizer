@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export default function JsonText({ onVisualize, isDarkMode }) {
+export default function JsonText({ onVisualize,onClear, isDarkMode }) {
   const [jsonText, setJsonText] = useState(`{
   "user": {
     "id": 1,
@@ -46,14 +46,17 @@ export default function JsonText({ onVisualize, isDarkMode }) {
   };
 
   const handleClearClick = () => {
-    setJsonText(""); // 👈 clears the textarea
+    setJsonText(""); // clears the textarea
+    setError("");
+    if (onVisualize) onVisualize({});
+    if (typeof onClear === "function") onClear(); // clears flow + search
   };
 
   return (
     <div className="json-input-container" style={{ padding: "1rem" }}>
       <h2>Paste or Type Your JSON Data</h2>
       <textarea
-        rows={15}
+        rows={25}
         placeholder="Paste your JSON here..."
         style={{
           background: isDarkMode ? "#1e1e1e" : "#ffffff",
@@ -62,6 +65,7 @@ export default function JsonText({ onVisualize, isDarkMode }) {
           padding: "0.5rem",
           fontFamily: "monospace",
           borderColor: error ? "red" : "#ccc",
+          borderRadius:'6px',
         }}
         value={jsonText}
         onChange={(e) => {
@@ -81,8 +85,8 @@ export default function JsonText({ onVisualize, isDarkMode }) {
         <button
           onClick={handleVisualize}
           style={{
-            flex: 1,
-            padding: "0.6rem 1rem",
+            flex: 2.5,
+            padding: "0.8rem 1rem",
             background: "#007bff",
             color: "white",
             border: "none",
@@ -100,8 +104,8 @@ export default function JsonText({ onVisualize, isDarkMode }) {
         <button
           onClick={handleClearClick}
           style={{
-            flex: 1,
-            padding: "0.6rem 1rem",
+            flex: 2.5,
+            padding: "0.8rem 1rem",
             background: "#6c757d",
             color: "white",
             border: "none",

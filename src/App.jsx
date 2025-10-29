@@ -5,9 +5,9 @@ import { parseJsonToFlow } from "./utils/parseJsonToFlow";
 import Header from "./components/Header";
 
 export default function App() {
-  const [flowData, setFlowData] = useState(null);
-  const [searchInput, setSearchInput] = useState(""); // text in input
-  const [searchTerm, setSearchTerm] = useState("");   // term to actually search
+  const [flowData, setFlowData] = useState(null); //  text in input
+  const [searchInput, setSearchInput] = useState(""); // term to actually search
+  const [searchTerm, setSearchTerm] = useState("");
   const [searchStatus, setSearchStatus] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -32,49 +32,63 @@ export default function App() {
     <div
       style={{
         display: "flex",
-        flexDirection: "column", // 👈 header on top, rest below
+        flexDirection: "column",
         height: "100vh",
         width: "100vw",
         overflow: "hidden",
         background: isDarkMode ? "#121212" : "#ffffff",
         color: isDarkMode ? "#eaeaea" : "#000000",
-
       }}
     >
-      {/* Top Header */}
+      {/* Header */}
       <Header isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} />
 
-      {/* Main Content (Left + Right panels) */}
-      <div
-        style={{
-          display: "flex",
-          flexGrow: 1,
-          overflow: "hidden",
-
-        }}
-      >
+      {/* Main layout */}
+      <div style={{ display: "flex", flexGrow: 1, overflow: "hidden" }}>
         {/* Left Panel */}
         <div
           style={{
             width: "35%",
-            borderRight: isDarkMode ? "1px solid #333" : "1px solid #ccc",
+
             overflowY: "auto",
             padding: "1rem",
-            boxSizing: "border-box",
             background: isDarkMode ? "#1e1e1e" : "#fff",
           }}
         >
-          <JsonText onVisualize={handleVisualize} isDarkMode={isDarkMode} />
+          <JsonText onVisualize={handleVisualize} onClear={() => {
+            setFlowData(null);
+            setSearchInput("");
+            setSearchTerm("");
+            setSearchStatus(null);
+          }}
+            isDarkMode={isDarkMode} />
+        </div>
 
+        {/* Right Panel */}
+        <div
+          style={{
+            flexGrow: 1,
+            height: "100%",
+            overflow: "hidden",
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* Search Bar  */}
           {flowData && (
-            <div style={{ marginTop: "1rem" }}>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "0.5rem",
-                  alignItems: "center",
-                }}
-              >
+            <div
+              style={{
+                padding: "0.75rem 1rem",
+
+                background: isDarkMode ? "#1e1e1e" : "#f9f9f9",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+                zIndex: 2,
+              }}
+            >
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                 <input
                   type="text"
                   placeholder="Search path (e.g. user.skills[0])"
@@ -109,28 +123,24 @@ export default function App() {
                 </button>
               </div>
 
+              {/* Status */}
               {searchStatus === "not-found" && (
                 <div
                   style={{
-                    marginTop: "0.75rem",
                     color: "#dc3545",
                     fontWeight: "500",
                     textAlign: "center",
-                    animation: "fadeIn 0.4s ease-in",
                   }}
                 >
                   No matches found!
                 </div>
               )}
-
               {searchStatus === "found" && (
                 <div
                   style={{
-                    marginTop: "0.75rem",
                     color: "#28a745",
                     fontWeight: "500",
                     textAlign: "center",
-                    animation: "fadeIn 0.4s ease-in",
                   }}
                 >
                   Match found!
@@ -138,39 +148,32 @@ export default function App() {
               )}
             </div>
           )}
-        </div>
 
-        {/* Right Panel */}
-        <div
-          style={{
-            flexGrow: 1,
-            height: "100%",
-            overflow: "hidden",
-            position: "relative",
-          }}
-        >
-          {flowData ? (
-            <TreeVisualizer
-              key={JSON.stringify(flowData.nodes.map((n) => n.id))}
-              nodes={flowData.nodes}
-              edges={flowData.edges}
-              searchTerm={searchTerm}
-              isDarkMode={isDarkMode}
-              onSearchResult={(found) =>
-                setSearchStatus(found ? "found" : "not-found")
-              }
-            />
-          ) : (
-            <div
-              style={{
-                padding: "2rem",
-                textAlign: "center",
-                color: "#777",
-              }}
-            >
-              🪄 Paste your JSON and click “Visualize JSON” to see the tree!
-            </div>
-          )}
+          {/* Tree Visualizer  */}
+          <div style={{ flexGrow: 1, position: "relative" }}>
+            {flowData ? (
+              <TreeVisualizer
+                key={JSON.stringify(flowData.nodes.map((n) => n.id))}
+                nodes={flowData.nodes}
+                edges={flowData.edges}
+                searchTerm={searchTerm}
+                isDarkMode={isDarkMode}
+                onSearchResult={(found) =>
+                  setSearchStatus(found ? "found" : "not-found")
+                }
+              />
+            ) : (
+              <div
+                style={{
+                  padding: "2rem",
+                  textAlign: "center",
+                  color: "#777",
+                }}
+              >
+                🪄 Paste your JSON and click “Visualize JSON” to see the tree!
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
