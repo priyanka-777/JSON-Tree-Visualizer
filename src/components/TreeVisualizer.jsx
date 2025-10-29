@@ -116,11 +116,25 @@ function TreeVisualizerInner(
 
     const lowerSearch = searchTerm.toLowerCase();
     const matchedNodeIds = nodesRef.current
-      .filter(
-        (n) =>
-          n.data?.path?.toLowerCase() === lowerSearch ||
-          n.data?.label?.toLowerCase()?.includes(lowerSearch)
-      )
+    .filter((n) => {
+      const nodePath = n.data?.path?.toLowerCase();
+      const nodeLabel = n.data?.label?.toLowerCase();
+  
+      // normalize paths → always treat as "$.<path>"
+      const normalizedNodePath = nodePath.startsWith("$")
+        ? nodePath
+        : "$." + nodePath;
+  
+      // exact match when user starts with "$"
+      const isPathMatch =
+        lowerSearch.startsWith("$") && normalizedNodePath === lowerSearch;
+  
+      // fuzzy label match when user doesn't start with "$"
+      const isLabelMatch =
+        !lowerSearch.startsWith("$") && nodeLabel?.includes(lowerSearch);
+  
+      return isPathMatch || isLabelMatch;
+  })  
       .map((n) => n.id);
 
     const found = matchedNodeIds.length > 0;
