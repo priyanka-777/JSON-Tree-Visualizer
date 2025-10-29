@@ -12,7 +12,7 @@ export function parseJsonToFlow(json, parentId = null, path = "$", posX = 0, pos
       ? String(json)
       : null;
 
-  // ✅ Skip root "$"
+  // Skip root "$"
   if (path !== "$") {
     const node = {
       id: currentId,
@@ -64,7 +64,6 @@ export function parseJsonToFlow(json, parentId = null, path = "$", posX = 0, pos
       nodes = nodes.concat(childNodes);
       edges = edges.concat(childEdges);
 
-      // Move next child further down
       currentY += verticalSpacing * Math.max(1, childNodes.length / 2);
     }
   } else if (type === "array") {
@@ -83,6 +82,39 @@ export function parseJsonToFlow(json, parentId = null, path = "$", posX = 0, pos
 
       currentY += verticalSpacing * Math.max(1, childNodes.length / 2);
     });
+  }
+
+  // Add unified root node at very top (only once)
+  if (path === "$") {
+    const rootId = "root-node";
+    const rootNode = {
+      id: rootId,
+      data: { label: "Root", path: "$", type: "object" },
+      position: { x: 0, y: 0 },
+      style: {
+        background: "#2563eb", // distinct blue
+        color: "#fff",
+        borderRadius: 8,
+        padding: 12,
+        fontSize: 14,
+        fontWeight: "bold",
+        minWidth: 150,
+        textAlign: "center",
+        boxShadow: "0 3px 8px rgba(0,0,0,0.2)",
+      },
+    };
+
+    // Connect all top-level nodes directly to Root
+    const topEdges = nodes
+      .filter((n) => !edges.some((e) => e.target === n.id)) // nodes with no parent
+      .map((n) => ({
+        id: `edge-${rootId}-${n.id}`,
+        source: rootId,
+        target: n.id,
+      }));
+
+    nodes.unshift(rootNode);
+    edges = [...topEdges, ...edges];
   }
 
   return { nodes, edges };

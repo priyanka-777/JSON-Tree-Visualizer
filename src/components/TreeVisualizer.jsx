@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef,forwardRef,useImperativeHandle } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  forwardRef,
+  useImperativeHandle,
+} from "react";
 import { toPng } from "html-to-image";
 import ReactFlow, {
   Background,
@@ -8,14 +14,18 @@ import ReactFlow, {
   useEdgesState,
   useReactFlow,
   ReactFlowProvider,
+  getNodesBounds,
+  getViewportForBounds,
 } from "reactflow";
 import "reactflow/dist/style.css";
-import domtoimage from "dom-to-image-more";
 
-function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchTerm,isDarkMode,onSearchResult },ref) {
+function TreeVisualizerInner(
+  { nodes: initialNodes, edges: initialEdges, searchTerm, isDarkMode, onSearchResult },
+  ref
+) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
-  const { fitView } = useReactFlow();
+  const { fitView, getNodes } = useReactFlow();
   const nodesRef = useRef(nodes);
   const reactFlowWrapperRef = useRef(null);
 
@@ -26,48 +36,62 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
 
   useImperativeHandle(ref, () => ({
     async downloadAsImage() {
-      const flow = reactFlowWrapperRef.current?.querySelector(".react-flow__pane");
-      const viewport = reactFlowWrapperRef.current?.querySelector(".react-flow__viewport");
-  
-      if (!flow || !viewport) {
-        console.error("React Flow pane/viewport not found");
-        return;
-      }
-  
-      // Save transform and temporarily reset it
-      const originalTransform = viewport.style.transform;
-      viewport.style.transform = "none";
-  
       try {
-        // Force a reflow so reset applies
-        await new Promise((r) => requestAnimationFrame(r));
-  
-        const padding = 40;
-        
-        const dataUrl = await domtoimage.toPng(flow, {
-          bgcolor: isDarkMode ? "#121212" : "#ffffff",
-          quality: 1,
-          scale: 2,
-          cacheBust: true,
-          width: flow.scrollWidth,
-          height: flow.scrollHeight,
+        const flow = reactFlowWrapperRef.current?.querySelector(".react-flow__viewport");
+        if (!flow) {
+          console.error("React Flow viewport not found");
+          return;
+        }
+
+        // Get all node bounds
+        const allNodes = getNodes();
+        if (!allNodes || allNodes.length === 0) {
+          alert("No nodes found to export");
+          return;
+        }
+
+        const nodesBounds = getNodesBounds(allNodes);
+
+        // Add padding to include outer edges
+        const padding = 100;
+        nodesBounds.x -= padding;
+        nodesBounds.y -= padding;
+        nodesBounds.width += padding * 2;
+        nodesBounds.height += padding * 2;
+
+        const imageWidth = 1920;
+        const imageHeight = 1080;
+        const viewport = getViewportForBounds(
+          nodesBounds,
+          imageWidth,
+          imageHeight,
+          0.2,
+          1.8
+        );
+
+        // Generate PNG using html-to-image
+        const dataUrl = await toPng(flow, {
+          backgroundColor: isDarkMode ? "#121212" : "#ffffff",
+          width: imageWidth,
+          height: imageHeight,
+          pixelRatio: 2,
+          style: {
+            width: `${imageWidth}px`,
+            height: `${imageHeight}px`,
+            transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+          },
         });
-  
+
         const link = document.createElement("a");
         link.download = "tree-visualization.png";
         link.href = dataUrl;
         link.click();
       } catch (err) {
-        console.error("Error generating full diagram:", err);
+        console.error("Error generating image:", err);
         alert("Download failed. Check console for details.");
-      } finally {
-        // Restore the original transform
-        viewport.style.transform = originalTransform;
       }
     },
   }));
-  
-
 
   const nodeColor = useCallback((node) => {
     switch (node.data.type) {
@@ -81,18 +105,15 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
   }, []);
 
   useEffect(() => {
-    // Step 1: Reset all node styles
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
         style: { ...n.style, border: "none", background: nodeColor(n), color: "#fff" },
       }))
     );
-  
-    // Step 2: Stop here if no search term (don’t notify parent)
+
     if (!searchTerm) return;
-  
-    // Step 3: Determine matches in one pass
+
     const lowerSearch = searchTerm.toLowerCase();
     const matchedNodeIds = nodesRef.current
       .filter(
@@ -101,11 +122,10 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
           n.data?.label?.toLowerCase()?.includes(lowerSearch)
       )
       .map((n) => n.id);
-  
+
     const found = matchedNodeIds.length > 0;
     onSearchResult?.(found);
-  
-    // Step 4: Apply new styles (highlight matches)
+
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
@@ -119,10 +139,11 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
         },
       }))
     );
-  
-    // Step 5: Focus on first match if found
+
     if (found) {
-      const firstMatch = nodesRef.current.find((n) => matchedNodeIds.includes(n.id));
+      const firstMatch = nodesRef.current.find((n) =>
+        matchedNodeIds.includes(n.id)
+      );
       if (firstMatch) {
         setTimeout(() => {
           fitView({ nodes: [firstMatch], padding: 1.5, duration: 800 });
@@ -130,12 +151,10 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
       }
     }
   }, [searchTerm, setNodes, fitView, nodeColor, onSearchResult]);
-  
-  
 
   return (
     <div
-    ref={reactFlowWrapperRef}
+      ref={reactFlowWrapperRef}
       style={{
         width: "100%",
         height: "100%",
@@ -144,26 +163,33 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
         transition: "background 0.3s ease, color 0.3s ease",
       }}
     >
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      fitView
-      style={{
-        background: isDarkMode ? "#1e1e1e" : "#ffffff",
-        color: isDarkMode ? "#eaeaea" : "#000000",
-      }}
-    >
-      <MiniMap nodeColor={(node) => (isDarkMode ? "#007bff" : "#555")}
-          maskColor={isDarkMode ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.8)"} nodeStrokeWidth={2} />
-      <Controls style={{ background: isDarkMode ? "#2a2a2a" : "#fff" }}/>
-      <Background variant="dots"
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        fitView
+        style={{
+          background: isDarkMode ? "#1e1e1e" : "#ffffff",
+          color: isDarkMode ? "#eaeaea" : "#000000",
+        }}
+      >
+        <MiniMap
+          nodeColor={() => (isDarkMode ? "#007bff" : "#555")}
+          maskColor={
+            isDarkMode ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.8)"
+          }
+          nodeStrokeWidth={2}
+        />
+        <Controls style={{ background: isDarkMode ? "#2a2a2a" : "#fff" }} />
+        <Background
+          variant="dots"
           gap={12}
           size={1}
-          color={isDarkMode ? "#444" : "#ddd"} />
-    </ReactFlow>
-  </div>
+          color={isDarkMode ? "#444" : "#ddd"}
+        />
+      </ReactFlow>
+    </div>
   );
 }
 
@@ -181,7 +207,7 @@ export default function TreeVisualizer(props) {
       }}
     >
       <ReactFlowProvider>
-      <ForwardedTreeVisualizerInner {...props} ref={props.forwardedRef} />
+        <ForwardedTreeVisualizerInner {...props} ref={props.forwardedRef} />
       </ReactFlowProvider>
     </div>
   );
