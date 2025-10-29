@@ -10,7 +10,7 @@ import ReactFlow, {
 } from "reactflow";
 import "reactflow/dist/style.css";
 
-function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchTerm,onSearchResult }) {
+function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchTerm,isDarkMode,onSearchResult }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
   const { fitView } = useReactFlow();
@@ -86,18 +86,35 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
   
 
   return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        background: isDarkMode ? "#121212" : "#fafafa",
+        color: isDarkMode ? "#eaeaea" : "#000000",
+        transition: "background 0.3s ease, color 0.3s ease",
+      }}
+    >
     <ReactFlow
       nodes={nodes}
       edges={edges}
       onNodesChange={onNodesChange}
       onEdgesChange={onEdgesChange}
       fitView
-      style={{ background: "#f8f9fa" }}
+      style={{
+        background: isDarkMode ? "#1e1e1e" : "#ffffff",
+        color: isDarkMode ? "#eaeaea" : "#000000",
+      }}
     >
-      <MiniMap nodeColor={nodeColor} nodeStrokeWidth={2} />
-      <Controls />
-      <Background color="#aaa" gap={20} />
+      <MiniMap nodeColor={(node) => (isDarkMode ? "#007bff" : "#555")}
+          maskColor={isDarkMode ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.8)"} nodeStrokeWidth={2} />
+      <Controls style={{ background: isDarkMode ? "#2a2a2a" : "#fff" }}/>
+      <Background variant="dots"
+          gap={12}
+          size={1}
+          color={isDarkMode ? "#444" : "#ddd"} />
     </ReactFlow>
+  </div>
   );
 }
 

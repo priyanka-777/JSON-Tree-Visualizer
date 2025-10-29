@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export default function JsonText({ onVisualize }) {
+export default function JsonText({ onVisualize, isDarkMode }) {
   const [jsonText, setJsonText] = useState(`{
   "user": {
     "id": 1,
@@ -56,6 +56,8 @@ export default function JsonText({ onVisualize }) {
         rows={15}
         placeholder="Paste your JSON here..."
         style={{
+          background: isDarkMode ? "#1e1e1e" : "#ffffff",
+          color: isDarkMode ? "#eaeaea" : "#000000",
           width: "100%",
           padding: "0.5rem",
           fontFamily: "monospace",
