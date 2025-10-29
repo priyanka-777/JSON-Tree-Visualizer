@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef,forwardRef,useImperativeHandle } from "react";
+import { toPng } from "html-to-image";
 import ReactFlow, {
   Background,
   Controls,
@@ -9,17 +10,64 @@ import ReactFlow, {
   ReactFlowProvider,
 } from "reactflow";
 import "reactflow/dist/style.css";
+import domtoimage from "dom-to-image-more";
 
-function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchTerm,isDarkMode,onSearchResult }) {
+function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchTerm,isDarkMode,onSearchResult },ref) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
   const { fitView } = useReactFlow();
   const nodesRef = useRef(nodes);
+  const reactFlowWrapperRef = useRef(null);
 
   // Keep ref updated but don't re-trigger effects
   useEffect(() => {
     nodesRef.current = nodes;
   }, [nodes]);
+
+  useImperativeHandle(ref, () => ({
+    async downloadAsImage() {
+      const flow = reactFlowWrapperRef.current?.querySelector(".react-flow__pane");
+      const viewport = reactFlowWrapperRef.current?.querySelector(".react-flow__viewport");
+  
+      if (!flow || !viewport) {
+        console.error("React Flow pane/viewport not found");
+        return;
+      }
+  
+      // Save transform and temporarily reset it
+      const originalTransform = viewport.style.transform;
+      viewport.style.transform = "none";
+  
+      try {
+        // Force a reflow so reset applies
+        await new Promise((r) => requestAnimationFrame(r));
+  
+        const padding = 40;
+        
+        const dataUrl = await domtoimage.toPng(flow, {
+          bgcolor: isDarkMode ? "#121212" : "#ffffff",
+          quality: 1,
+          scale: 2,
+          cacheBust: true,
+          width: flow.scrollWidth,
+          height: flow.scrollHeight,
+        });
+  
+        const link = document.createElement("a");
+        link.download = "tree-visualization.png";
+        link.href = dataUrl;
+        link.click();
+      } catch (err) {
+        console.error("Error generating full diagram:", err);
+        alert("Download failed. Check console for details.");
+      } finally {
+        // Restore the original transform
+        viewport.style.transform = originalTransform;
+      }
+    },
+  }));
+  
+
 
   const nodeColor = useCallback((node) => {
     switch (node.data.type) {
@@ -87,6 +135,7 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
 
   return (
     <div
+    ref={reactFlowWrapperRef}
       style={{
         width: "100%",
         height: "100%",
@@ -118,6 +167,8 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
   );
 }
 
+const ForwardedTreeVisualizerInner = forwardRef(TreeVisualizerInner);
+
 export default function TreeVisualizer(props) {
   return (
     <div
@@ -130,7 +181,7 @@ export default function TreeVisualizer(props) {
       }}
     >
       <ReactFlowProvider>
-        <TreeVisualizerInner {...props} />
+      <ForwardedTreeVisualizerInner {...props} ref={props.forwardedRef} />
       </ReactFlowProvider>
     </div>
   );

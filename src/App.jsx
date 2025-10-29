@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState,useRef } from "react";
 import JsonText from "./components/JsonText";
 import TreeVisualizer from "./components/TreeVisualizer";
 import { parseJsonToFlow } from "./utils/parseJsonToFlow";
@@ -10,8 +10,15 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searchStatus, setSearchStatus] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const treeRef = useRef(null);
 
   const handleToggleTheme = () => setIsDarkMode(!isDarkMode);
+
+  const handleDownload = () => {
+    if (treeRef.current?.downloadAsImage) {
+      treeRef.current.downloadAsImage();
+    }
+  };
 
   const handleVisualize = (json) => {
     const { nodes, edges } = parseJsonToFlow(json);
@@ -41,7 +48,10 @@ export default function App() {
       }}
     >
       {/* Header */}
-      <Header isDarkMode={isDarkMode} onToggleTheme={handleToggleTheme} />
+      <Header 
+      isDarkMode={isDarkMode} 
+      onToggleTheme={handleToggleTheme}
+      onDownload={handleDownload} />
 
       {/* Main layout */}
       <div style={{ display: "flex", flexGrow: 1, overflow: "hidden" }}>
@@ -153,6 +163,7 @@ export default function App() {
           <div style={{ flexGrow: 1, position: "relative" }}>
             {flowData ? (
               <TreeVisualizer
+              forwardedRef={treeRef}
                 key={JSON.stringify(flowData.nodes.map((n) => n.id))}
                 nodes={flowData.nodes}
                 edges={flowData.edges}

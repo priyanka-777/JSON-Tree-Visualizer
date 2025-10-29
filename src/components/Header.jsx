@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export default function Header({ isDarkMode, onToggleTheme }) {
+export default function Header({ isDarkMode, onToggleTheme,onDownload }) {
   return (
     <header
       style={{
@@ -14,6 +14,21 @@ export default function Header({ isDarkMode, onToggleTheme }) {
       }}
     >
       <h1 style={{ fontSize: "1.5rem", margin: 0 }}>JSON Tree Visualizer</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+      <button
+          onClick={onDownload}
+          style={{
+            padding: "0.5rem 1rem",
+          border: "none",
+          borderRadius: "4px",
+          background: isDarkMode ? "#333" : "#007bff",
+          color: "#fff",
+          cursor: "pointer",
+          fontWeight: 500,
+          }}
+        >
+          Download
+        </button>
       <button
         onClick={onToggleTheme}
         style={{
@@ -28,6 +43,7 @@ export default function Header({ isDarkMode, onToggleTheme }) {
       >
         {isDarkMode ? "Light Mode" : "Dark Mode"}
       </button>
+      </div>
     </header>
   );
 }
