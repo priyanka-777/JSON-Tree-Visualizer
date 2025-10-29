@@ -45,11 +45,16 @@ export default function JsonText({ onVisualize }) {
     }
   };
 
+  const handleClearClick = () => {
+    setJsonText(""); // 👈 clears the textarea
+  };
+
   return (
     <div className="json-input-container" style={{ padding: "1rem" }}>
       <h2>Paste or Type Your JSON Data</h2>
       <textarea
         rows={15}
+        placeholder="Paste your JSON here..."
         style={{
           width: "100%",
           padding: "0.5rem",
@@ -58,26 +63,58 @@ export default function JsonText({ onVisualize }) {
         }}
         value={jsonText}
         onChange={(e) => {
-            setJsonText(e.target.value)
-            if (error) setError("");
+          setJsonText(e.target.value)
+          if (error) setError("");
         }
-    }
+        }
       />
       {error && <p style={{ color: "red" }}>{error}</p>}
-      <button
-        onClick={handleVisualize}
+      <div
         style={{
+          display: "flex",
+          gap: "0.75rem",
           marginTop: "1rem",
-          padding: "0.5rem 1rem",
-          background: "#007bff",
-          color: "white",
-          border: "none",
-          borderRadius: "4px",
-          cursor: "pointer",
         }}
       >
-        Visualize JSON
-      </button>
+        <button
+          onClick={handleVisualize}
+          style={{
+            flex: 1,
+            padding: "0.6rem 1rem",
+            background: "#007bff",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontWeight: "500",
+            transition: "background 0.2s ease",
+          }}
+          onMouseOver={(e) => (e.target.style.background = "#0056b3")}
+          onMouseOut={(e) => (e.target.style.background = "#007bff")}
+        >
+          Visualize JSON
+        </button>
+
+        <button
+          onClick={handleClearClick}
+          style={{
+            flex: 1,
+            padding: "0.6rem 1rem",
+            background: "#6c757d",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontWeight: "500",
+            transition: "background 0.2s ease",
+          }}
+          onMouseOver={(e) => (e.target.style.background = "#5a6268")}
+          onMouseOut={(e) => (e.target.style.background = "#6c757d")}
+        >
+          Clear
+        </button>
+      </div>
+
     </div>
   );
 }

@@ -33,7 +33,7 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
   }, []);
 
   useEffect(() => {
-    // Step 1: Reset all nodes first
+    // Step 1: Reset all node styles
     setNodes((nds) =>
       nds.map((n) => ({
         ...n,
@@ -41,45 +41,48 @@ function TreeVisualizerInner({ nodes: initialNodes, edges: initialEdges, searchT
       }))
     );
   
-    // Step 2: If empty search, just stop after reset
-    if (!searchTerm){
-      onSearchResult?.(true);
-       return;
-      }
-    let found = false;
-    // Step 3: Apply highlighting for matches
-    setNodes((nds) =>
-      nds.map((n) => {
-        const isMatch =
-          n.data?.path?.toLowerCase() === searchTerm.toLowerCase() ||
-          n.data?.label?.toLowerCase()?.includes(searchTerm.toLowerCase());
-          if (isMatch) found = true;
-        return {
-          ...n,
-          style: {
-            ...n.style,
-            border: isMatch ? "3px solid #ff4757" : "none",
-            background: isMatch ? "#ffeaa7" : nodeColor(n),
-            color: isMatch ? "#000" : "#fff",
-          },
-        };
-      })
-    );
+    // Step 2: Stop here if no search term (don’t notify parent)
+    if (!searchTerm) return;
+  
+    // Step 3: Determine matches in one pass
+    const lowerSearch = searchTerm.toLowerCase();
+    const matchedNodeIds = nodesRef.current
+      .filter(
+        (n) =>
+          n.data?.path?.toLowerCase() === lowerSearch ||
+          n.data?.label?.toLowerCase()?.includes(lowerSearch)
+      )
+      .map((n) => n.id);
+  
+    const found = matchedNodeIds.length > 0;
     onSearchResult?.(found);
-
-    // Step 4: Smoothly focus on first matched node
-    const match = nodesRef.current.find(
-      (n) =>
-        n.data?.path?.toLowerCase() === searchTerm.toLowerCase() ||
-        n.data?.label?.toLowerCase()?.includes(searchTerm.toLowerCase())
+  
+    // Step 4: Apply new styles (highlight matches)
+    setNodes((nds) =>
+      nds.map((n) => ({
+        ...n,
+        style: {
+          ...n.style,
+          border: matchedNodeIds.includes(n.id) ? "3px solid #ff4757" : "none",
+          background: matchedNodeIds.includes(n.id)
+            ? "#ffeaa7"
+            : nodeColor(n),
+          color: matchedNodeIds.includes(n.id) ? "#000" : "#fff",
+        },
+      }))
     );
   
-    if (match) {
-      setTimeout(() => {
-        fitView({ nodes: [match], padding: 1.5, duration: 800 });
-      }, 200);
+    // Step 5: Focus on first match if found
+    if (found) {
+      const firstMatch = nodesRef.current.find((n) => matchedNodeIds.includes(n.id));
+      if (firstMatch) {
+        setTimeout(() => {
+          fitView({ nodes: [firstMatch], padding: 1.5, duration: 800 });
+        }, 200);
+      }
     }
-  }, [searchTerm, setNodes, fitView, nodeColor]);
+  }, [searchTerm, setNodes, fitView, nodeColor, onSearchResult]);
+  
   
 
   return (

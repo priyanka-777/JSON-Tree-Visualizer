@@ -7,18 +7,21 @@ export default function App() {
   const [flowData, setFlowData] = useState(null);
   const [searchInput, setSearchInput] = useState(""); // text in input
   const [searchTerm, setSearchTerm] = useState("");   // term to actually search
-  const [notFound, setNotFound] = useState(false);
+  const [searchStatus, setSearchStatus] = useState(null);
 
   const handleVisualize = (json) => {
     const { nodes, edges } = parseJsonToFlow(json);
     setFlowData({ nodes, edges });
     setSearchInput("");
     setSearchTerm("");
+    setSearchStatus(null);
   };
 
   const handleSearchClick = () => {
-    setNotFound(false);
-    setSearchTerm(searchInput.trim()); // only trigger when button clicked
+    const trimmed = searchInput.trim();
+    if (!trimmed) return; // no empty searches
+    setSearchStatus(null); // clear old status while searching
+    setSearchTerm(trimmed); // only trigger when button clicked
   };
 
   return (
@@ -59,7 +62,17 @@ export default function App() {
                 type="text"
                 placeholder="Search path (e.g. user.skills[0])"
                 value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                onChange={(e) => {
+                
+                  setSearchInput(e.target.value);
+                  if (searchStatus !== null) {
+                    setSearchStatus(null);
+                  }
+                  if ( e.target.value.trim() === "") {
+                    setSearchTerm(""); 
+                  }
+                }
+                }
                 style={{
                   flexGrow: 1,
                   padding: "0.5rem",
@@ -84,7 +97,7 @@ export default function App() {
             </div>
 
             {/* Not Found Message */}
-            {notFound && (
+            {searchStatus === "not-found" && (
               <div
                 style={{
                   marginTop: "0.75rem",
@@ -94,9 +107,24 @@ export default function App() {
                   animation: "fadeIn 0.4s ease-in",
                 }}
               >
-                No matches found for "{searchInput}"
+                 No matches found!
               </div>
             )}
+
+            {searchStatus === "found" && (
+              <div
+                style={{
+                  marginTop: "0.75rem",
+                  color: "#28a745",
+                  fontWeight: "500",
+                  textAlign: "center",
+                  animation: "fadeIn 0.4s ease-in",
+                }}
+              >
+                ✅ Match found!
+              </div>
+            )}
+            
           </div>
         )}
 
@@ -117,7 +145,7 @@ export default function App() {
             nodes={flowData.nodes}
             edges={flowData.edges}
             searchTerm={searchTerm} // 👈 pass term only on button click
-            onSearchResult={(found) => setNotFound(!found)}
+            onSearchResult={(found) => setSearchStatus(found ? "found" : "not-found")}
           />
 
         ) : (
