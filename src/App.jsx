@@ -101,7 +101,7 @@ export default function App() {
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                 <input
                   type="text"
-                  placeholder="Search path (e.g. user.skills[0])"
+                  placeholder="Search path (e.g. $.user.skills[0])"
                   value={searchInput}
                   onChange={(e) => {
                     setSearchInput(e.target.value);
